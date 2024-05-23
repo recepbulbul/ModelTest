@@ -4,8 +4,6 @@ import joblib
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from pymongo import MongoClient, errors
-from gridfs import GridFS
-from bson.objectid import ObjectId
 
 # MongoDB bağlantısı
 mongo_url = "mongodb+srv://eazrayldrm:XhCbZJKjXVciV4Xy@code23db.rg4gwva.mongodb.net/Code23Vt?retryWrites=true&w=majority"
@@ -13,7 +11,6 @@ try:
     client = MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
     db = client["Code23Vt"]
     collection = db["results"]
-    fs = GridFS(db)
     client.server_info()  # Trigger exception if cannot connect to the server
     mongo_connected = True
 except errors.ServerSelectionTimeoutError as err:
@@ -70,12 +67,10 @@ if uploaded_model_file and username and 'test_data' in locals():
     y_pred = model.predict(X_test)
     f1 = f1_score(y_test, y_pred, average="weighted")
 
-    # Modeli ve sonuçları kaydetme
+    # Sonuçları kaydetme
     if mongo_connected:
-        # Modeli GridFS kullanarak kaydet
-        model_id = fs.put(uploaded_model_file.read(), filename=f"{username}_model.joblib")
-        collection.insert_one({"username": username, "f1_score": f1, "model_id": model_id, "model_name": f"{username}_model.joblib"})
-        st.success(f"{username}, modelinizin F1 skoru: {f1:.4f} ve model başarıyla kaydedildi.")
+        collection.insert_one({"username": username, "f1_score": f1})
+        st.success(f"{username}, modelinizin F1 skoru: {f1:.4f}")
     else:
         st.warning("Sonuçları kaydedebilmek için MongoDB bağlantısı kurulamadı.")
 
@@ -83,7 +78,7 @@ if uploaded_model_file and username and 'test_data' in locals():
 if mongo_connected:
     st.write("Kullanıcılar ve F1 Skorları:")
     results = list(collection.find().sort("f1_score", -1))
-    results_df = pd.DataFrame(results, columns=["username", "f1_score", "model_name"])
+    results_df = pd.DataFrame(results, columns=["username", "f1_score"])
     st.write(results_df)
 else:
     st.warning("Sonuçları göstermek için MongoDB bağlantısı kurulamadı.")
