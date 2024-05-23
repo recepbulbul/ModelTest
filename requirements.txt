@@ -4,4 +4,4 @@ joblib
 pymongo
 scikit-learn
 numpy
-gridfs==1.1.0
+
