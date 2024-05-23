@@ -3,17 +3,12 @@ import pandas as pd
 import joblib
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from pymongo import MongoClient, errors
+from pymongo import MongoClient
 
 # MongoDB bağlantısı
-mongo_url = "mongodb+srv://eazrayldrm:XhCbZJKjXVciV4Xy@code23db.rg4gwva.mongodb.net/Code23Vt?retryWrites=true&w=majority"
-try:
-    client = MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
-    db = client["Code23Vt"]
-    collection = db["results"]
-    client.server_info()  # Bağlantının başarılı olup olmadığını kontrol eder.
-except errors.ServerSelectionTimeoutError as err:
-    st.error("MongoDB sunucusuna bağlanılamadı: {}".format(err))
+client = MongoClient("mongodb+srv://eazrayldrm:XhCbZJKjXVciV4Xy@code23db.rg4gwva.mongodb.net/<Code23Vt>?retryWrites=true&w=majority")
+db = client["Code23Vt"]
+collection = db["results"]
 
 # Sidebar seçenekleri
 st.sidebar.title("Veri İşleme Seçenekleri")
@@ -28,12 +23,15 @@ st.write("Eğitilmiş makine öğrenmesi modelinizi yükleyin ve test verileri �
 username = st.text_input("Kullanıcı Adı")
 
 # GitHub'dan test verisi çekme
-@st.cache_data
+@st.cache
 def load_data():
     url = "https://raw.githubusercontent.com/azrayildirim/ModelTest/main/iris_test.csv"
     return pd.read_csv(url)
 
-
+if st.button("Test Verisini Yükle"):
+    test_data = load_data()
+    st.write("Test Verisi:")
+    st.write(test_data)
 
 # Model dosyasını yükleme
 uploaded_model_file = st.file_uploader("Model dosyası yükleyin (.joblib)", type=["joblib"])
@@ -43,12 +41,10 @@ if uploaded_model_file and username and 'test_data' in locals():
     y_test = test_data["target"]  # 'target' sütunu hedef değerlerdir.
 
     # Veriyi işleme
-    if normalization and standardization:
-        st.error("Lütfen sadece bir işleme seçeneği seçin: Normalizasyon veya Standardizasyon.")
-    elif normalization:
+    if normalization:
         scaler = MinMaxScaler()
         X_test = scaler.fit_transform(X_test)
-    elif standardization:
+    if standardization:
         scaler = StandardScaler()
         X_test = scaler.fit_transform(X_test)
 
@@ -57,15 +53,11 @@ if uploaded_model_file and username and 'test_data' in locals():
     f1 = f1_score(y_test, y_pred, average="weighted")
 
     # Sonuçları kaydetme
-    if 'collection' in locals():
-        collection.insert_one({"username": username, "f1_score": f1})
-        st.success(f"{username}, modelinizin F1 skoru: {f1:.4f}")
+    collection.insert_one({"username": username, "f1_score": f1})
+    st.success(f"{username}, modelinizin F1 skoru: {f1:.4f}")
 
 # Sonuçların sıralanması ve gösterimi
-if 'collection' in locals():
-    st.write("Kullanıcılar ve F1 Skorları:")
-    results = list(collection.find().sort("f1_score", -1))
-    results_df = pd.DataFrame(results, columns=["username", "f1_score"])
-    st.write(results_df)
-else:
-    st.warning("Sonuçları göstermek için MongoDB bağlantısı kurulamadı.")
+st.write("Kullanıcılar ve F1 Skorları:")
+results = list(collection.find().sort("f1_score", -1))
+results_df = pd.DataFrame(results, columns=["username", "f1_score"])
+st.write(results_df)
