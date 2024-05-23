@@ -4,3 +4,4 @@ joblib
 pymongo
 scikit-learn
 numpy
+gridfs
