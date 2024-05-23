@@ -33,10 +33,7 @@ def load_data():
     url = "https://raw.githubusercontent.com/azrayildirim/ModelTest/main/iris_test.csv"
     return pd.read_csv(url)
 
-if st.button("Test Verisini Yükle"):
-    test_data = load_data()
-    st.write("Test Verisi:")
-    st.write(test_data)
+
 
 # Model dosyasını yükleme
 uploaded_model_file = st.file_uploader("Model dosyası yükleyin (.joblib)", type=["joblib"])
